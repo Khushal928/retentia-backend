@@ -10,6 +10,7 @@ class Subject(BaseModel):
     chapters: List[Chapter]
     
 class QuizQuestion(BaseModel):
+    question_id: int
     chapter: str
     question: str
     options: List[str] = Field(min_length=4, max_length=4)
@@ -17,6 +18,7 @@ class QuizQuestion(BaseModel):
     related_concepts: List[str]
         
 class QuizQuestionSafe(BaseModel):
+    question_id: int
     question: str
     options: List[str] = Field(min_length=4, max_length=4)
  
@@ -52,3 +54,16 @@ QUIZ_RESPONSE_SCHEMA = {
         ]
     }
 }
+
+class UserResponse(BaseModel):
+    question_id: int
+    submitted_answer: str
+    
+class SubmitQuiz(BaseModel):
+    quiz_id: str
+    user_responses: List[UserResponse]
+
+class SubmitQuizResponse(BaseModel):
+    quiz_id: str
+    # todo
+    

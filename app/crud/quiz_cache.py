@@ -21,3 +21,22 @@ def store_quiz(quiz_id: str, user_id: int, questions: list):
     except RedisError:
         logger.exception("Failed to cache quiz %s in Redis", quiz_id)
         return False
+
+def get_quiz(quiz_id: str, user_id: int):
+    try:
+        data = redis_client.get(f"quiz:{quiz_id}")
+
+        if not data:
+            logger.exception("quiz %s expired", quiz_id)
+            return None
+
+        if (data.user_id != user_id):
+            logger.exception("user %i tried to submit quiz %s which is not created by them", user_id, quiz_id)
+            return None
+
+    quiz_data = json.loads(data)
+    return [QuizQuestion(**q) for q in quiz_data["questions"]]
+
+    except RedisError:
+        logger.exception("Failed to fetch quiz %s from Redis", quiz_id)
+        return None

@@ -8,10 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from google import genai
 from pydantic import ValidationError
 
-from app.crud.quiz_cache import store_quiz
+from app.crud.quiz_cache import store_quiz, get_quiz
+from app.crud.quiz import evaluate_quiz
 from app.dependencies import get_current_user
 from app.models import User
-from app.schemas.quiz import QuizResponse, QuizQuestion, QuizQuestionSafe, Subject, QUIZ_RESPONSE_SCHEMA
+from app.schemas.quiz import QuizResponse, QuizQuestion, QuizQuestionSafe, Subject, QUIZ_RESPONSE_SCHEMA, SubmitQuiz, SubmitQuizResponse
 
 load_dotenv()
 
@@ -61,7 +62,13 @@ Rules:
         
     try:
         quiz_data = json.loads(response.text)
-        questions = [QuizQuestion(**q) for q in quiz_data]
+
+        questions = []
+        i = 0
+        for q in quiz_data:
+            q["question_id"] = i
+            questions.append(QuizQuestion(**q))
+            i += 1
  
     except json.JSONDecodeError:
         raise HTTPException(
@@ -95,3 +102,15 @@ Rules:
     ]
  
     return QuizResponse(quiz_id=quiz_id, questions=safe_questions)
+
+@router.post("/submit-quiz", response_model=SubmitQuizResponse)
+def generate_quiz(data: SubmitQuiz, current_user: User = Depends(get_current_user)):
+    
+    user_id = current_user.id
+    quiz_data = get_quiz(user_id=user_id, quiz_id=data.quiz_id)
+
+    result = evaluate_quiz(user_id = user_id,
+                           quiz_data = quiz_data,
+                           user_responses = data.UserResponse)
+
+    return SubmitQuizResponse(quiz_id=quiz_id, result=result)
